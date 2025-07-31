@@ -2,31 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 
 const BudgetForm = ({ onSubmit, initialData }) => {
-    const [category, setCategory] = useState('Food'); // Default category
+    const [category, setCategory] = useState('Food'); 
     const [amount, setAmount] = useState('');
-    const [month, setMonth] = useState(format(new Date(), 'yyyy-MM')); // Default to current month
+    const [month, setMonth] = useState(format(new Date(), 'yyyy-MM')); 
 
     const categories = [
         'Food', 'Rent', 'Travel', 'Entertainment', 'Shopping', 'Utilities',
         'Healthcare', 'Education', 'Transport', 'Salary', 'Other Income', 'Other Expense'
     ];
 
-    // Populate form if initialData (for editing) is provided
+    
     useEffect(() => {
         if (initialData) {
             setCategory(initialData.category);
-            setAmount(initialData.budgeted); // Note: using 'budgeted' from summary
-            // Initial data might not have the 'month' directly, derive it or adjust API if needed.
-            // For now, assume it's current month or add 'month' to summary
-            // If we get it from raw budgets (not summary), it would be initialData.month
-            // Let's assume initialData has month if it's from raw budget list
-            // If it's from budgetSummary, we might not have `month` easily.
-            // For simplicity, for editing, we assume initialData directly comes from a raw budget object
-            // Let's adjust Budgets.js `handleEdit` if needed to pass original budget, not summary item.
-            // For now, if initialData doesn't have month, it defaults to current month
+            setAmount(initialData.budgeted); 
             setMonth(initialData.month || format(new Date(), 'yyyy-MM'));
         } else {
-            // Reset form for new entry
+            
             setCategory('Food');
             setAmount('');
             setMonth(format(new Date(), 'yyyy-MM'));
@@ -36,7 +28,6 @@ const BudgetForm = ({ onSubmit, initialData }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit({ category, amount: parseFloat(amount), month });
-        // Clear form after submission if it's a new entry (or if not editing)
         if (!initialData) {
             setAmount('');
             setCategory('Food');
@@ -78,7 +69,7 @@ const BudgetForm = ({ onSubmit, initialData }) => {
                 <div className="form-group">
                     <label htmlFor="month">Month:</label>
                     <input
-                        type="month" // HTML5 input type for month and year
+                        type="month" 
                         id="month"
                         value={month}
                         onChange={(e) => setMonth(e.target.value)}

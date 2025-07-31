@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // To use the login function
-import { Link } from 'react-router-dom'; // For navigation to register
+import { useAuth } from '../context/AuthContext'; 
+import { Link } from 'react-router-dom'; 
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { login } = useAuth(); // Get the login function from context
+    const { login } = useAuth(); 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
+        setError(''); 
         try {
             await login(email, password);
-            // navigate to dashboard handled by AuthContext
         } catch (err) {
             setError(err.message || 'Login failed. Please check your credentials.');
         }

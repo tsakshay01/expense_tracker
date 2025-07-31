@@ -1,18 +1,17 @@
 const express = require('express');
 const { getExpenses, addExpense, updateExpense, deleteExpense, getSpendingSummary } = require('../controllers/expenseController');
-const { protect } = require('../middleware/authMiddleware'); // Import the authentication middleware
+const { protect } = require('../middleware/authMiddleware'); 
 const router = express.Router();
 
-// Routes for managing individual expenses
-router.route('/') // Applies to /api/expenses
-    .get(protect, getExpenses) // GET: Get all expenses for authenticated user
-    .post(protect, addExpense); // POST: Add a new expense for authenticated user
+router.route('/') 
+    .get(protect, getExpenses) 
+    .post(protect, addExpense); 
 
-router.route('/summary') // Applies to /api/expenses/summary
-    .get(protect, getSpendingSummary); // GET: Get spending analytics for dashboard
+router.route('/summary') 
+    .get(protect, getSpendingSummary); 
 
-router.route('/:id') // Applies to /api/expenses/:id (where :id is the expense ID)
-    .put(protect, updateExpense) // PUT: Update a specific expense
-    .delete(protect, deleteExpense); // DELETE: Delete a specific expense
+router.route('/:id') 
+    .put(protect, updateExpense) 
+    .delete(protect, deleteExpense); 
 
 module.exports = router;

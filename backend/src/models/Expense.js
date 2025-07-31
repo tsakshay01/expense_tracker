@@ -1,40 +1,38 @@
 const mongoose = require('mongoose');
 
-// Define the schema for the Expense model
 const expenseSchema = new mongoose.Schema({
-    user: { // Reference to the User who created this expense
+    user: { 
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Refers to the 'User' model
+        ref: 'User', 
         required: true
     },
     amount: {
         type: Number,
         required: true,
-        min: 0 // Amount must be non-negative
+        min: 0 
     },
     category: {
         type: String,
         required: true,
-        // Predefined list of categories for consistency
+        
         enum: ['Food', 'Rent', 'Travel', 'Entertainment', 'Shopping', 'Utilities', 'Healthcare', 'Education', 'Transport', 'Salary', 'Other Income', 'Other Expense'],
-        default: 'Other Expense' // Default category if not specified
+        default: 'Other Expense' 
     },
     date: {
         type: Date,
         required: true,
-        default: Date.now // Default to current date
+        default: Date.now 
     },
     notes: {
         type: String,
-        trim: true, // Remove leading/trailing whitespace
-        maxlength: 200 // Maximum length for notes
+        trim: true, 
+        maxlength: 200 
     },
     createdAt: {
         type: Date,
-        default: Date.now // Timestamp for when the expense record was created
+        default: Date.now 
     }
 });
 
-// Create and export the Expense model
 const Expense = mongoose.model('Expense', expenseSchema);
 module.exports = Expense;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // To access authentication state
+import { useAuth } from '../context/AuthContext'; 
 
 const Header = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
