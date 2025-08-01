@@ -1,31 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, Title, PointElement, LineElement } from 'chart.js';
 import { format } from 'date-fns';
+import './Dashboard.css';
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, Title, PointElement, LineElement);
+
+const formatCurrency = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
 
 const Dashboard = () => {
     const [summary, setSummary] = useState(null);
     const [budgetSummary, setBudgetSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [timeFrame, setTimeFrame] = useState('monthly');
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             setLoading(true);
             setError('');
             try {
-                // Fetch spending summary
-                const expenseRes = await api.get('/expenses/summary');
+                const expenseRes = await api.get(`/expenses/summary?period=${timeFrame}`);
+                const budgetRes = await api.get(`/budgets/summary?period=${timeFrame}`);
                 setSummary(expenseRes.data);
-
-                // Fetch budget summary
-                const budgetRes = await api.get('/budgets/summary');
                 setBudgetSummary(budgetRes.data);
-
             } catch (err) {
                 console.error('Failed to fetch dashboard data:', err);
                 setError('Failed to load dashboard data. Please try again.');
@@ -33,216 +32,108 @@ const Dashboard = () => {
                 setLoading(false);
             }
         };
-
         fetchDashboardData();
-    }, []);
+    }, [timeFrame]);
+
+    const totalBudget = budgetSummary?.reduce((acc, item) => acc + item.budgeted, 0) || 0;
+    const totalSpend = timeFrame === 'monthly' ? summary?.totalSpendThisMonth : summary?.totalSpendThisWeek;
+    
+    const doughnutChartData = {
+        labels: summary?.spendByCategory.map(item => item._id) || [],
+        datasets: [{
+            data: summary?.spendByCategory.map(item => item.total) || [],
+            backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#6B7280', '#EF4444'],
+            borderColor: '#ffffff',
+            borderWidth: 4,
+        }],
+    };
+    const doughnutChartOptions = {
+        responsive: true, cutout: '70%', plugins: { legend: { display: false } },
+    };
+    const barChartData = {
+        labels: budgetSummary?.map(item => item.category) || [],
+        datasets: [
+            { label: 'Budget', data: budgetSummary?.map(item => item.budgeted) || [], backgroundColor: '#A5B4FC' },
+            { label: 'Spending', data: budgetSummary?.map(item => item.actualSpend) || [], backgroundColor: '#4F46E5' },
+        ],
+    };
+    const barChartOptions = {
+        responsive: true, plugins: { legend: { position: 'top', align: 'end' } },
+        scales: { x: { stacked: false, grid: { display: false } }, y: { beginAtZero: true, grid: { display: false } } },
+    };
+
+    const topSpendingCategories = summary?.spendByCategory
+        ?.sort((a, b) => b.total - a.total)
+        .slice(0, 3);
 
     if (loading) return <div className="loading">Loading dashboard...</div>;
     if (error) return <div className="error-message">{error}</div>;
 
-    // Prepare data for charts
-
-    // Pie chart for spending by category
-    const pieChartData = {
-        labels: summary?.spendByCategory.map(item => item._id) || [],
-        datasets: [
-            {
-                data: summary?.spendByCategory.map(item => item.total) || [],
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                    '#FF9F40', '#E7E9EE', '#ADD8E6', '#FFD700', '#A9A9A9',
-                    '#800000', '#008080'
-                ],
-                hoverBackgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                    '#FF9F40', '#E7E9EE', '#ADD8E6', '#FFD700', '#A9A9A9',
-                    '#800000', '#008080'
-                ],
-            },
-        ],
-    };
-    const pieChartOptions = {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Spending by Category (This Month)',
-            },
-            legend: {
-                position: 'right',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed !== null) {
-                            label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed);
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-    };
-
-    // Line chart for spending trends
-    const lineChartLabels = summary?.spendingTrends.map(item => format(new Date(item._id), 'MMM dd')) || [];
-    const lineChartDataValues = summary?.spendingTrends.map(item => item.total) || [];
-
-    const lineChartData = {
-        labels: lineChartLabels,
-        datasets: [
-            {
-                label: 'Daily Spending (Last 30 Days)',
-                data: lineChartDataValues,
-                fill: false,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1,
-            },
-        ],
-    };
-    const lineChartOptions = {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Daily Spending Trends',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Amount (INR)'
-                }
-            },
-            x: {
-                title: {
-                    display: true,
-                    text: 'Date'
-                }
-            }
-        }
-    };
-
-
-    // Bar chart for Budget vs Actual (This Month)
-    const budgetBarLabels = budgetSummary?.map(item => item.category) || [];
-    const budgetBarBudgeted = budgetSummary?.map(item => item.budgeted) || [];
-    const budgetBarActual = budgetSummary?.map(item => item.actualSpend) || [];
-
-    const budgetBarData = {
-        labels: budgetBarLabels,
-        datasets: [
-            {
-                label: 'Budgeted',
-                data: budgetBarBudgeted,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1,
-            },
-            {
-                label: 'Actual Spend',
-                data: budgetBarActual,
-                backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red
-                borderColor: 'rgba(255, 99, 132, 1)',
-                borderWidth: 1,
-            },
-        ],
-    };
-
-    const budgetBarOptions = {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Budget vs. Actual Spending (This Month)',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-        scales: {
-            x: {
-                stacked: false,
-            },
-            y: {
-                beginAtZero: true,
-                stacked: false,
-                title: {
-                    display: true,
-                    text: 'Amount (INR)'
-                }
-            },
-        },
-    };
-
-
     return (
         <div className="dashboard-page">
-            <h1>Dashboard</h1>
-
-            <div className="dashboard-summary">
-                <div className="card total-spend-card">
-                    <h3>Total Spent This Month</h3>
-                    <p>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(summary?.totalSpendThisMonth || 0)}</p>
+            <header className="dashboard-header">
+                <h1>Dashboard</h1>
+                <div className="header-controls">
+                    {/* <select className="header-dropdown"><option>INR</option></select> */}
+                    <select
+                        className="header-dropdown"
+                        value={timeFrame}
+                        onChange={(e) => setTimeFrame(e.target.value)}
+                    >
+                        <option value="monthly">This Month</option>
+                        <option value="weekly">This Week</option>
+                    </select>
                 </div>
+            </header>
 
-                <div className="card top-expenses-card">
-                    <h3>Top Expense Days (Last 30 Days)</h3>
-                    {summary?.topExpenseDays && summary.topExpenseDays.length > 0 ? (
+            <div className="dashboard-grid">
+                <div className="chart-container">
+                    <h2>Budget vs Spending</h2>
+                    <Bar options={barChartOptions} data={barChartData} />
+
+                    <div className="top-categories-list">
+                        <h3>Top Spending Categories</h3>
                         <ul>
-                            {summary.topExpenseDays.map((day, index) => (
-                                <li key={index}>
-                                    {format(new Date(day._id), 'MMM dd, yyyy')}:{' '}
-                                    <strong>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(day.total)}</strong>
+                            {topSpendingCategories?.map((item) => (
+                                <li key={item._id}>
+                                    <span className="category-name">{item._id}</span>
+                                    <span className="category-amount">{formatCurrency(item.total)}</span>
                                 </li>
                             ))}
                         </ul>
-                    ) : (
-                        <p>No top expense days recorded in the last 30 days.</p>
-                    )}
+                    </div>
                 </div>
-            </div>
 
-            <div className="charts-grid">
-                <div className="chart-card pie-chart">
-                    <Pie data={pieChartData} options={pieChartOptions} />
-                </div>
-                <div className="chart-card line-chart">
-                    <Line data={lineChartData} options={lineChartOptions} />
-                </div>
-                <div className="chart-card bar-chart">
-                    <Bar data={budgetBarData} options={budgetBarOptions} />
+                <div className="right-column-stack">
+                    <div className="summary-cards">
+                        <div className="stat-card blue-bg">
+                            <h3>Total {timeFrame === 'monthly' ? 'Monthly' : 'Weekly'} Budget</h3>
+                            <p>{formatCurrency(totalBudget)}</p>
+                        </div>
+                        <div className="stat-card white-bg">
+                            <h3>Total {timeFrame === 'monthly' ? 'Monthly' : 'Weekly'} Spend</h3>
+                            <p>{formatCurrency(totalSpend || 0)}</p>
+                        </div>
+                    </div>
+
+                    <div className="chart-container">
+                        <h2>Expenses by Category</h2>
+                        <div className="doughnut-wrapper">
+                           <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                           <div className="doughnut-center-text">
+                                <strong>{formatCurrency(totalSpend || 0)}</strong>
+                                <span>This {timeFrame === 'monthly' ? 'Month' : 'Week'}</span>
+                           </div>
+                        </div>
+                        <div className="doughnut-legend">
+                            {doughnutChartData.labels.map((label, index) => (
+                                <div key={label} className="legend-item">
+                                    <span className="legend-color" style={{ backgroundColor: doughnutChartData.datasets[0].backgroundColor[index] }}></span>
+                                    <span>{label}</span>
+                                 </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
